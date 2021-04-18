@@ -19,20 +19,20 @@ local function spawn(opts)
   local stdin = uv.new_pipe(false)
   local stdout = uv.new_pipe(false)
   local stderr = uv.new_pipe(false)
-  if opts.stdin then
-    if type(opts.stdin) == 'table' then
-      uv.write(stdin, table.concat(opts.stdin))
-    end
-    if type(opts.stdin) == 'string' then
-      uv.write(stdin, table.concat(opts.stdin))
-    end
+
+  if opts.sync and opts.stdout then
+    print('you can specify only one of stdout or sync')
+    return
   end
+
+  local done = false
   local handle, _ = uv.spawn(opts.command, {
     args = opts.args,
     stdio = { stdin, stdout, stderr },
-    cwd = '/home/amirreza/src/github.com/amirrezaask/spawn.nvim/lua/spawn',
-  }, function(code, signal)
+  }, function(code, _)
     assert(code == 0, 'process ' .. opts.command .. ' exited with code ' .. code)
+    print('on_exit')
+    done = true
     if opts.on_exit and type(opts.on_exit) == 'function' then
       opts.on_exit()
     end
@@ -41,14 +41,30 @@ local function spawn(opts)
     print('could not spawn the process')
     return
   end
-  local output_data
+  if opts.stdin then
+    if type(opts.stdin) == 'table' then
+      uv.write(stdin, table.concat(opts.stdin), function()
+        stdin:close()
+      end)
+    end
+    if type(opts.stdin) == 'string' then
+      uv.write(stdin, opts.stdin, function()
+        stdin:close()
+      end)
+    end
+  end
+  uv.read_start(stderr, function(err, data)
+    assert(not err, 'cannot read from stderr')
+    if data then
+      print('err: ' .. data)
+    end
+  end)
   if opts.stdout then
     if type(opts.stdout) == 'function' then
       uv.read_start(stdout, function(err, data)
         assert(not err, 'error in reading from stdout')
         -- TODO: maybe split this by newline
         if data then
-          output_data = vim.split(data, '\n')
           opts.stdout(vim.split(data, '\n'))
         end
       end)
@@ -58,7 +74,6 @@ local function spawn(opts)
       uv.read_start(stdout, function(err, data)
         assert(not err, 'error in reading from stdout')
         if data then
-          output_data = vim.split(data, '\n')
           vim.schedule(function()
             vim.api.nvim_buf_set_lines(opts.stdout, 0, -1, false, vim.split(data, '\n'))
           end)
@@ -66,28 +81,29 @@ local function spawn(opts)
       end)
     end
   end
-  uv.shutdown(stdin, function()
-    uv.close(handle, function()
-    end)
-  end)
+  -- uv.shutdown(stdin, function()
+  --   uv.close(handle, function()
+  --   end)
+  -- end)
   if opts.sync then
-    vim.wait(opts.sync.timeout, function()
-      if output_data then
-        return output_data
+    local output
+    uv.read_start(stdout, function(err, data)
+      assert(not err, 'error in reading from stdout: ')
+      if data then
+        output = vim.split(data, '\n')
       end
-      return false
     end)
+    local ok = vim.wait(opts.sync.timeout, function()
+      return done
+    end, opts.sync.interval, false)
+    return output
   end
 end
 
-spawn({
-  command = 'bash',
-  args = { 'lazy.sh' },
-  stdout = 6,
-  on_exit = function()
-    print('on_exit callback')
-  end,
-  sync = { timeout = 10000, interval = 100 },
-})
+-- P(spawn({
+--   command = 'cat',
+--   stdin = { 'aa' },
+--   sync = { timeout = 1000, interval = 1 },
+-- }))
 
 return spawn
