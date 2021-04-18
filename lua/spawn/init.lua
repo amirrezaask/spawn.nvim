@@ -30,7 +30,7 @@ local function spawn(opts)
     args = opts.args,
     stdio = { stdin, stdout, stderr },
   }, function(code, _)
-    assert(code == 0, 'process ' .. opts.command .. ' exited with code ' .. code)
+    -- assert(code == 0, 'process ' .. opts.command .. ' exited with code ' .. code)
     done = true
     if opts.on_exit and type(opts.on_exit) == 'function' then
       opts.on_exit()
@@ -92,7 +92,7 @@ local function spawn(opts)
         output = vim.split(data, '\n')
       end
     end)
-    local ok = vim.wait(opts.sync.timeout, function()
+    vim.wait(opts.sync.timeout, function()
       return done
     end, opts.sync.interval, false)
     return output
@@ -103,6 +103,7 @@ P(spawn({
   command = 'fzf',
   stdin = { 'aa', 'bb', 'cc' },
   args = { '-f', '' },
+  -- stdout = 9,
   sync = { timeout = 1000, interval = 1 },
 }))
 
