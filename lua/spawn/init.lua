@@ -31,7 +31,6 @@ local function spawn(opts)
     stdio = { stdin, stdout, stderr },
   }, function(code, _)
     -- assert(code == 0, 'process ' .. opts.command .. ' exited with code ' .. code)
-    done = true
     if opts.on_exit and type(opts.on_exit) == 'function' then
       opts.on_exit()
     end
@@ -80,16 +79,21 @@ local function spawn(opts)
       end)
     end
   end
-  -- uv.shutdown(stdin, function()
-  --   uv.close(handle, function()
-  --   end)
-  -- end)
   if opts.sync then
     local output = {}
     uv.read_start(stdout, function(err, data)
       assert(not err, 'error in reading from stdout: ')
       if data then
-        output = vim.split(data, '\n')
+        local tmp = vim.split(data, '\n')
+        for _, v in pairs(tmp) do
+          if v ~= '' then
+            table.insert(output, v)
+          end
+        end
+      end
+      if data == nil then
+        stdout:close()
+        done = true
       end
     end)
     vim.wait(opts.sync.timeout, function()
@@ -99,12 +103,11 @@ local function spawn(opts)
   end
 end
 
-P(spawn({
-  command = 'fzf',
-  stdin = { 'aa', 'bb', 'cc' },
-  args = { '-f', '' },
-  -- stdout = 9,
-  sync = { timeout = 1000, interval = 1 },
-}))
+-- P(spawn({
+--   command = 'bash',
+--   args = { 'lazy.sh' },
+--   -- stdout = 9,
+--   sync = { timeout = 4000, interval = 10 },
+-- }))
 
 return spawn
