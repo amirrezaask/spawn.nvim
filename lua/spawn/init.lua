@@ -31,7 +31,6 @@ local function spawn(opts)
     stdio = { stdin, stdout, stderr },
   }, function(code, _)
     assert(code == 0, 'process ' .. opts.command .. ' exited with code ' .. code)
-    print('on_exit')
     done = true
     if opts.on_exit and type(opts.on_exit) == 'function' then
       opts.on_exit()
@@ -86,7 +85,7 @@ local function spawn(opts)
   --   end)
   -- end)
   if opts.sync then
-    local output
+    local output = {}
     uv.read_start(stdout, function(err, data)
       assert(not err, 'error in reading from stdout: ')
       if data then
@@ -100,11 +99,11 @@ local function spawn(opts)
   end
 end
 
--- P(spawn({
---   command = 'fzf',
---   stdin = { 'aa', 'bb', 'cc' },
---   args = { '-f', '' },
---   sync = { timeout = 1000, interval = 1 },
--- }))
+P(spawn({
+  command = 'fzf',
+  stdin = { 'aa', 'bb', 'cc' },
+  args = { '-f', '' },
+  sync = { timeout = 1000, interval = 1 },
+}))
 
 return spawn
