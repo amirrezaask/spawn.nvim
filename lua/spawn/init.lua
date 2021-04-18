@@ -43,7 +43,7 @@ local function spawn(opts)
   end
   if opts.stdin then
     if type(opts.stdin) == 'table' then
-      uv.write(stdin, table.concat(opts.stdin), function()
+      uv.write(stdin, table.concat(opts.stdin, '\n'), function()
         stdin:close()
       end)
     end
@@ -101,8 +101,9 @@ local function spawn(opts)
 end
 
 -- P(spawn({
---   command = 'cat',
---   stdin = { 'aa' },
+--   command = 'fzf',
+--   stdin = { 'aa', 'bb', 'cc' },
+--   args = { '-f', '' },
 --   sync = { timeout = 1000, interval = 1 },
 -- }))
 
