@@ -56,6 +56,9 @@ local function spawn(opts)
     if data then
       print('err: ' .. data)
     end
+    if data == nil then
+      stderr:close()
+    end
   end)
   if opts.stdout then
     if type(opts.stdout) == 'function' then
@@ -92,13 +95,14 @@ local function spawn(opts)
         end
       end
       if data == nil then
-        stdout:close()
         done = true
       end
     end)
     vim.wait(opts.sync.timeout, function()
       return done
     end, opts.sync.interval, false)
+
+    stdout:close()
     return output
   end
 end
