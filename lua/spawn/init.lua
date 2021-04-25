@@ -16,7 +16,10 @@ local function spawn(opts)
     print('key ' .. keys_missing(' is missing.'))
   end
   local uv = vim.loop
-  local stdin = uv.new_pipe(false)
+  local stdin = nil
+  if opts.stdin then
+    stdin = uv.new_pipe(false)
+  end
   local stdout = uv.new_pipe(false)
   local stderr = uv.new_pipe(false)
 
@@ -32,6 +35,7 @@ local function spawn(opts)
   }, function(code, _)
     -- assert(code == 0, 'process ' .. opts.command .. ' exited with code ' .. code)
     if opts.on_exit and type(opts.on_exit) == 'function' then
+      stdin:close()
       opts.on_exit()
     end
   end)
@@ -68,6 +72,9 @@ local function spawn(opts)
         if data then
           opts.stdout(vim.split(data, '\n'))
         end
+        if data == nil then
+          stdout:close()
+        end
       end)
     end
 
@@ -79,10 +86,16 @@ local function spawn(opts)
             vim.api.nvim_buf_set_lines(opts.stdout, 0, -1, false, vim.split(data, '\n'))
           end)
         end
+        if data == nil then
+          stdout:close()
+        end
       end)
     end
   end
+
   if opts.sync then
+    opts.sync.interval = opts.sync.interval or 10
+    opts.sync.timeout = opts.sync.timeout or 1000
     local output = {}
     uv.read_start(stdout, function(err, data)
       assert(not err, 'error in reading from stdout: ')
@@ -95,14 +108,16 @@ local function spawn(opts)
         end
       end
       if data == nil then
+        stdout:close()
         done = true
       end
     end)
     vim.wait(opts.sync.timeout, function()
       return done
     end, opts.sync.interval, false)
-
-    stdout:close()
+    stdin = nil
+    stdout = nil
+    stderr = nil
     return output
   end
 end
