@@ -7,6 +7,11 @@ local function exists(tbl, keys)
   return nil
 end
 
+local function close(pipe)
+  if not pipe:is_closing() then 
+    pipe:close()
+  end
+end
 local function spawn(opts)
   if not opts then
     print('Please pass a table with something in it, i dont know what to do')
@@ -34,8 +39,8 @@ local function spawn(opts)
     stdio = { stdin, stdout, stderr },
   }, function(code, _)
     -- assert(code == 0, 'process ' .. opts.command .. ' exited with code ' .. code)
+    stdin:close()
     if opts.on_exit and type(opts.on_exit) == 'function' then
-      stdin:close()
       opts.on_exit()
     end
   end)
@@ -46,12 +51,12 @@ local function spawn(opts)
   if opts.stdin then
     if type(opts.stdin) == 'table' then
       uv.write(stdin, table.concat(opts.stdin, '\n'), function()
-        stdin:close()
+        close(stdin)
       end)
     end
     if type(opts.stdin) == 'string' then
       uv.write(stdin, opts.stdin, function()
-        stdin:close()
+        close(stdin)
       end)
     end
   end
@@ -61,7 +66,7 @@ local function spawn(opts)
       print('err: ' .. data)
     end
     if data == nil then
-      stderr:close()
+      close(stderr)
     end
   end)
   if opts.stdout then
@@ -73,7 +78,7 @@ local function spawn(opts)
           opts.stdout(vim.split(data, '\n'))
         end
         if data == nil then
-          stdout:close()
+          close(stdout)
         end
       end)
     end
@@ -87,7 +92,7 @@ local function spawn(opts)
           end)
         end
         if data == nil then
-          stdout:close()
+          close(stdout)
         end
       end)
     end
@@ -108,13 +113,17 @@ local function spawn(opts)
         end
       end
       if data == nil then
-        stdout:close()
+        close(stdout)
         done = true
       end
     end)
     vim.wait(opts.sync.timeout, function()
       return done
-    end, opts.sync.interval, false)
+    end, opts.sync.interval)
+    close(stdin)
+    close(stderr)
+    close(stdout)
+
     stdin = nil
     stdout = nil
     stderr = nil

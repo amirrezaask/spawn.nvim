@@ -1,6 +1,7 @@
 # spawn.nvim
 Simple wrapper around libuv.spawn which makes it easy to use in neovim, specially when you want sync behaviour.
-
+# Disclaimer
+Use [https://github.com/nvim-lua/plenary.nvim](plenary.nvim)
 # Usage
 spawn exposes just a simple function that get some options:
 - command: name of the program you want to run
@@ -10,6 +11,7 @@ spawn exposes just a simple function that get some options:
 - sync: table that defines a timeout ( in milis ) and an interval ( in milis ).
 remember that sync and stdout cannot be defined together since sync mode assumes your output is going
 to be spawn return value.
+
 ## Sync mode
 Sync mode returns the output of program splitted based on `\n` char.
 ```lua
