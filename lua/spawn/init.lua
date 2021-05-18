@@ -100,6 +100,12 @@ local function spawn(opts)
     on_stderr = on_stdout_buffer(opts.stderr)
   end
 
+  if type(opts.stdout) == 'function' then
+    on_stdout = opts.stdout
+  end
+  if type(opts.stderr) == 'function' then
+    on_stderr = opts.stderr
+  end
   if opts.sync then
     on_stdout = on_stdout_sync()
     on_stderr = on_stderr_sync()
@@ -117,9 +123,11 @@ local function spawn(opts)
     vim.fn.chansend(stdin_id, opts.stdin)
   end
   if opts.sync then
-    vim.wait(2000, function()
+    vim.wait(opts.sync.wait or 2000, function()
       return process_done and stdout_done and stderr_done 
-    end, 10)
+    end, opts.sync.interval or 10)
     return stdout, stderr, success
   end
 end
+
+return spawn

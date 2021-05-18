@@ -1,11 +1,8 @@
 # spawn.nvim
 Simple wrapper around libuv.spawn which makes it easy to use in neovim, specially when you want sync behaviour.
-# Disclaimer
-Use [https://github.com/nvim-lua/plenary.nvim](plenary.nvim)
 # Usage
 spawn exposes just a simple function that get some options:
-- command: name of the program you want to run
-- args: arguments to pass to program [ table like uv.spawn itself ]
+- command: command to run
 - stdin: can be either a table or a string, both will be written in stdin pipe.
 - stdout: can be either a number or a callback ( see below )
 - sync: table that defines a timeout ( in milis ) and an interval ( in milis ).
@@ -18,8 +15,7 @@ Sync mode returns the output of program splitted based on `\n` char.
 local spawn = require'spawn'
 
 spawn {
-    command = 'find',
-    args = { '--type', 's,f' },
+    command = 'find --type s,f',
     sync = { timeout = 1000, interval = 100 }
 }
 ```
@@ -29,8 +25,7 @@ represent a neovim buffer and callback should get a chunk of data and handle it.
 ### Buffer Stdout
 ```lua
 spawn {
-    command = 'find',
-    args = { '--type', 's,f' },
+    command = 'find --type s,f',
     stdout = 5, -- results are going to be written in buffer number 5
 }
 ```
@@ -38,8 +33,7 @@ spawn {
 ### callback stdout
 ```lua
 spawn {
-    command = 'find',
-    args = { '--type', 's,f' },
+    command = 'find --type s,f',
     stdout = function(chunk)
         -- handle data
     end
