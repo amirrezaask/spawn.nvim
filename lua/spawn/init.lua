@@ -123,9 +123,15 @@ local function spawn(opts)
     vim.fn.chansend(stdin_id, opts.stdin)
   end
   if opts.sync then
-    vim.wait(opts.sync.wait or 2000, function()
+    if type(opts.sync) ~= 'table' then
+      opts.sync = {
+        wait = 2000,
+        interval = 10
+      }
+    end
+    vim.wait(opts.sync.wait, function()
       return process_done and stdout_done and stderr_done 
-    end, opts.sync.interval or 10)
+    end, opts.sync.interval)
     return stdout, stderr, success
   end
 end
